@@ -1,28 +1,32 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"log"
 	"os"
 )
 
 func main() {
-	file, err := os.Open("messages.txt")
+	f, err := os.Open("messages.txt")
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Panic(err)
 	}
-	reader := bufio.NewReader(file)
+
+	defer f.Close()
 	// ob := make([]byte, 8)
-	for i := 0; ; i++ {
-		ob := make([]byte, 8)
-		_, err := reader.Read(ob)
+	ob := make([]byte, 1)
+	fmt.Print("read :")
+
+	for {
+		ok, err := f.Read(ob)
 		if err != nil {
 			break
 		}
-		fmt.Print(string(ob))
-
+		if string(ob) == string('\n') {
+			fmt.Println("")
+			fmt.Print("read :")
+			continue
+		}
+		fmt.Print(string(ob[:ok]))
 	}
-
-	// fmt.Print(string(ob))
 }
