@@ -4,56 +4,65 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
+	"net"
 )
 
+// go run . | Tee-Object -FilePath "$env:TEMP\tcp.txt"
+
+// $client = New-Object System.Net.Sockets.TcpClient("127.0.0.1", 42069)
+// $stream = $client.GetStream()
+// $writer = New-Object System.IO.StreamWriter($stream)
+// $writer.AutoFlush = $true
+// $writer.WriteLine("Do you have what it takes to be an engineer at TheStartup™?")
+// $writer.Close()
+// $client.Close()
+
 func getLinesChannel(f io.ReadCloser) <-chan string {
+	str := ""
+	buf := make([]byte, 1)
 	ch := make(chan string)
-
 	go func() {
-
 		defer f.Close()
-		// ob := make([]byte, 8)
-		ob := make([]byte, 1)
-		// fmt.Print("read :")
-		// ch <- "read :"
-		str := ""
+		defer close(ch)
+		defer fmt.Println("connection has been closed")
 		for {
-			_, err := f.Read(ob)
+			_, err := f.Read(buf)
 			if err != nil {
 				ch <- str
-				break
+				// fmt.Print(str)
+				return
 			}
-			if string(ob) == string('\n') {
-				// fmt.Println("")
-				str += string(ob)
+			if string(buf) == "\n" {
+				// fmt.Print(str)
 				ch <- str
 				str = ""
-				// ch <- "read :"
-				continue
 			} else {
-				str += string(ob)
+				str += string(buf)
 			}
-
-			// fmt.Print(string(ob[:ok]))
-			// ch <- string(ob)
 		}
-		close(ch)
-	}()
 
+	}()
 
 	return ch
 }
 
 func main() {
-
-	f, err := os.Open("messages.txt")
+	l, err := net.Listen("tcp", ":42069")
 	if err != nil {
 		log.Panic(err)
 	}
+	defer l.Close()
 
-	chg := getLinesChannel(f)
-	for m := range chg {
-		fmt.Print("read :" + m)
+	for {
+		con, err := l.Accept()
+		if err != nil {
+			log.Panic(err)
+		}
+		fmt.Println("connection has been accepted")
+		om := getLinesChannel(con)
+		for temp := range om {
+			fmt.Println(temp)
+		}
+
 	}
 }
